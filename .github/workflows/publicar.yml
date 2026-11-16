@@ -1,0 +1,31 @@
+name: Publicar web
+
+on:
+  push:
+    paths:
+      - 'publicar.txt'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reconstruir y publicar
+        run: |
+          sha256sum partes/p*.txt
+          cat partes/p*.txt | tr -d '\n\r ' | tr '_-' '/+' > /tmp/p.b64
+          base64 -d -i /tmp/p.b64 > /tmp/web.zip || true
+          rm -rf docs && mkdir docs
+          unzip -o -q /tmp/web.zip -d docs
+          touch docs/.nojekyll
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add docs
+          git commit -m "Publicar web"
+          git push
