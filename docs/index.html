@@ -209,12 +209,12 @@ var web=(function(){
     exportData:function(f){var day=new Date().toISOString().slice(0,10);
       if(f=="csv"){var s="﻿Fecha;Hora;Tipo;Monto;Categoria;Descripcion;Cuenta;Nota;Origen\n";d.tx.forEach(function(t){var x=new Date(t.ts-new Date(t.ts).getTimezoneOffset()*6e4).toISOString();s+=x.slice(0,10)+";"+x.slice(11,16)+";"+q(t.type)+";"+t.amount+";"+q(t.category)+";"+q(t.merchant)+";"+q(t.account)+";"+q(t.note)+";"+q(t.source)+"\n"});download("mis-gastos-"+day+".csv","text/csv",s)}
       else download("mis-gastos-"+day+".json","application/json",JSON.stringify({tx:d.tx,categories:d.categories,rules:d.rules,settings:d.settings}))},
-    importData:function(){var i=document.createElement("input");i.type="file";i.accept=".json,application/json";i.onchange=function(){var fr=new FileReader();fr.onload=function(){try{var o=JSON.parse(fr.result),n=0;
-        (o.categories||[]).forEach(function(c){if(!d.categories.some(function(x){return x.name==c.name}))d.categories.push(c)});
-        (o.rules||[]).forEach(function(r){d.rules=d.rules.filter(function(x){return x.keyword!=r.keyword});d.rules.push(r)});
-        (o.settings||[]).forEach(function(s){d.settings=d.settings.filter(function(x){return x.k!=s.k});d.settings.push(s)});
-        (o.tx||[]).forEach(function(t){if(t.amount>0&&!d.tx.some(function(x){return x.ts==t.ts&&x.amount==t.amount&&x.type==t.type})){t.id=d.seq++;d.tx.push(t);n++}});
-        sortTx();wr();refresh();toast("Respaldo restaurado: "+n+" movimientos nuevos")}catch(e){toast("No se pudo leer el archivo")}};fr.readAsText(i.files[0])};i.click()}};
+    importData:function(){var i=document.createElement("input");i.type="file";i.style.cssText="position:fixed;left:-9999px;opacity:0";document.body.appendChild(i);i.onchange=function(){var f=i.files&&i.files[0];setTimeout(function(){i.remove()},1000);if(!f)return;var fr=new FileReader();fr.onerror=function(){toast("No se pudo abrir el archivo")};fr.onload=function(){try{var o=JSON.parse(String(fr.result).replace(/^\uFEFF/,"").trim()),n=0,last=0;if(!o||!Array.isArray(o.tx))throw 0;
+        (o.categories||[]).forEach(function(c){if(c&&c.name&&!d.categories.some(function(x){return x.name==c.name}))d.categories.push(c)});
+        (o.rules||[]).forEach(function(r){if(!r||!r.keyword)return;d.rules=d.rules.filter(function(x){return x.keyword!=r.keyword});d.rules.push(r)});
+        (o.settings||[]).forEach(function(s){if(!s||!s.k)return;d.settings=d.settings.filter(function(x){return x.k!=s.k});d.settings.push(s)});
+        o.tx.forEach(function(t){if(!t)return;t.ts=+t.ts;t.amount=+t.amount;if(t.amount>0&&t.ts>0&&!d.tx.some(function(x){return x.ts==t.ts&&x.amount==t.amount&&x.type==t.type})){t.id=d.seq++;d.tx.push(t);n++;if(t.ts>last)last=t.ts}});
+        sortTx();wr();if(last){var dd=new Date(last);month=new Date(dd.getFullYear(),dd.getMonth(),1)}refresh();toast(n?"Respaldo restaurado: "+n+" movimientos nuevos":"No hay movimientos nuevos: ya estaban todos")}catch(e){toast("Ese archivo no es un respaldo de Mis Gastos (.json)")}};fr.readAsText(f)};i.click()}};
 })();
 var N=window.Native||web;
 if(WEB&&navigator.storage&&navigator.storage.persist)navigator.storage.persist();
